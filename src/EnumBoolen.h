@@ -117,4 +117,14 @@ inline Charging_State& charging_State() {
   static Charging_State currentCharging_State;
   return currentCharging_State;
 }
+enum Heartbeat_State {
+  Stop_Charging_State, // When OBS Outside Parameter
+  Start_Charging_State
+  
+};
+//  extern enum Obs_State obsState;
+inline Heartbeat_State& heartbeat_State() {
+  static Heartbeat_State currentheartbeat_State;
+  return currentheartbeat_State;
+}
 #endif
