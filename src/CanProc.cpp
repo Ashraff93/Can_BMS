@@ -3,8 +3,8 @@
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;  // can1 port 
 Convert convert;
 extern uint8_t buff_D[];
-  uint16_t VR, CR, EC; 
-  uint16_t VF, CF, EF;
+uint16_t VRF, CRF, EC; 
+uint16_t VFF, CFF, EF;
 void canSniff20(const CAN_message_t &msg) { // global callback
   // Serial.print("T4: ");
   // Serial.print("MB "); Serial.print(msg.mb);
@@ -38,11 +38,11 @@ void canSniff20(const CAN_message_t &msg) { // global callback
 }
   }
   if (msg.id == 0x201){
-       uint16_t VR  = (msg.buf[0]<<8) + msg.buf[1];//The nearest target of sector2
-       uint16_t VRF  = VR *10;
-       uint16_t CR = (msg.buf[2]<<8) + msg.buf[3];//The nearest target of sector3
-       uint16_t CRF  = CR *10;
-       uint16_t EC = (msg.buf[0]<<4) + msg.buf[5];;//The nearest target of sector1
+      uint16_t VR  = (msg.buf[0]<<8) + msg.buf[1];//The nearest target of sector2
+      VRF  = VR *10;
+      uint16_t CR = (msg.buf[2]<<8) + msg.buf[3];//The nearest target of sector3
+      CRF  = CR *10;
+      EC = (msg.buf[0]<<4) + msg.buf[5];;//The nearest target of sector1
         switch (EC) {
         case 0:
                 charging_State() = Charging_State::Stop_Charging;   
@@ -57,9 +57,9 @@ void canSniff20(const CAN_message_t &msg) { // global callback
   }
   if (msg.id == 0x181 ){
         uint16_t VF  = (msg.buf[0]<<8) + msg.buf[1];//The nearest target of sector2
-        uint16_t VFF  = VF *10;
+        VFF  = VF *10;
         uint16_t CF = (msg.buf[2]<<8) + msg.buf[3];//The nearest target of sector3
-        uint16_t CFF  = CF *10;
+        CFF  = CF *10;
         uint16_t EF = (msg.buf[0]<<4) + msg.buf[5];;//The nearest target of sector1
           switch (EF) {
         case 0:
@@ -117,12 +117,13 @@ void CanBus::begin(uint32_t dataRate){
 
 void CanBus::CanB_Event(){
   can1.events();
-  if (Comm_Establish_Button() || Comm_Establish()){
-    led->Update(1); //Call 
-  }
-  else{
-    led->Update(0);
-  }
+  charging_message._voltage_reference = VRF;
+  charging_message._current_reference = CRF;
+  charging_message._charging_reference = EC;
+  heartbeat_message._voltage_reference = VFF;
+  heartbeat_message._current_reference = CFF;
+  heartbeat_message._charging_reference = EF;
+
 }
 
 

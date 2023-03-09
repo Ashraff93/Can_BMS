@@ -36,8 +36,8 @@ class CanBus {
     // Class Member Variables
     // Constructor - creates a CanBus
   private:
-    CANListener  *onReceive;
-    Ws2812* led; //Pointer class Ws2812 Led
+  
+    Flasher* led; //Pointer class Ws2812 Led
     String DecHex_Linear; // String DecHex_Linear declaration
     String DecHex_Angular; // String DecHex_Linear declaration
     String hex_values = "";
@@ -59,9 +59,10 @@ class CanBus {
     /// \param[in] ws2812  Call class led to pointer with constructor or object
     /// for specific task
   */
+
   /**************************************************************************/
-     CanBus(Ws2812& ws2812) {
-      led = &ws2812;
+  CanBus(Flasher& flasher) {
+      led = &flasher;
     }
   /**************************************************************************/
   /*!
@@ -79,7 +80,19 @@ class CanBus {
   */
   /**************************************************************************/
     void CanB_Event(); //Void Function Parameter IncomingNewMessage declaration
-    
+    void Send_Event(); //Void Function Parameter IncomingNewMessage declaration
+  struct Charging_message
+  {
+    uint16_t _voltage_reference; //Limit switch status
+    uint16_t _current_reference; //Alarm value status
+    uint16_t _charging_reference; //Error value status
+  };Charging_message  charging_message;
+    struct Heartbeat_message
+  {
+    uint16_t _voltage_reference; //Limit switch status
+    uint16_t _current_reference; //Alarm value status
+    uint16_t _charging_reference; //Error value status
+  };Heartbeat_message  heartbeat_message;
     
 };
 
