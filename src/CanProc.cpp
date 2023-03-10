@@ -1,5 +1,4 @@
 #include "CanProc.h"
-
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;  // can1 port 
 Convert convert;
 extern uint8_t buff_D[];
@@ -24,13 +23,13 @@ void canSniff20(const CAN_message_t &msg) { // global callback
   if (msg.id == 0x701){
       switch (msg.buf[1]) {
         case 0:
-                heartbeat() = Heartbeat::Initialization;   
+                heartbeat() = Heartbeat::Initialization;//0 : initialization
         break;
         case 1:
-                heartbeat() = Heartbeat::Pre_operational;  
+                heartbeat() = Heartbeat::Pre_operational;//1 : pre-operational  
         break;
         case 2:
-                heartbeat() = Heartbeat::Operational;  
+                heartbeat() = Heartbeat::Operational;//2 : operational 
         break;
         default:
 
@@ -38,35 +37,39 @@ void canSniff20(const CAN_message_t &msg) { // global callback
 }
   }
   if (msg.id == 0x201){
-      uint16_t VR  = (msg.buf[0]<<8) + msg.buf[1];//The nearest target of sector2
-      VRF  = VR *10;
-      uint16_t CR = (msg.buf[2]<<8) + msg.buf[3];//The nearest target of sector3
-      CRF  = CR *10;
-      EC = (msg.buf[0]<<4) + msg.buf[5];;//The nearest target of sector1
-        switch (EC) {
-        case 0:
-                charging_State() = Charging_State::Stop_Charging;   
-        break;
-        case 1:
-                charging_State() = Charging_State::Start_Charging;  
-        break;
-        default:
+    bMS_State() = BMS_State::Request_Charging;
+    uint16_t VR  = (msg.buf[0]<<8) + msg.buf[1];//voltage reference low<<voltage reference high
+    VRF  = VR /10;// *10, ex: 321 = 32.1V
+    uint16_t CR = (msg.buf[2]<<8) + msg.buf[3];//current reference low<<current reference high
+    CRF  = CR /10;//*10, ex: 1000 = 100A
+    EC = (msg.buf[0]<<4) + msg.buf[5];//Enable command 
+    switch (EC) {
+      case 0:
+            charging_State() = Charging_State::Stop_Charging;//0: stop Charging   
+      break;
+      case 1:
+            charging_State() = Charging_State::Start_Charging;//1: start Charging
+      break;
+      default:
 
       break;
-}
+    }
+  }
+  else{
+    bMS_State() = BMS_State::Not_Charging;
   }
   if (msg.id == 0x181 ){
-        uint16_t VF  = (msg.buf[0]<<8) + msg.buf[1];//The nearest target of sector2
-        VFF  = VF *10;
-        uint16_t CF = (msg.buf[2]<<8) + msg.buf[3];//The nearest target of sector3
-        CFF  = CF *10;
-        uint16_t EF = (msg.buf[0]<<4) + msg.buf[5];;//The nearest target of sector1
+        uint16_t VF  = (msg.buf[0]<<8) + msg.buf[1];//voltage reference low<<voltage reference high
+        VFF  = VF /10;// *10, ex: 321 = 32.1V
+        uint16_t CF = (msg.buf[2]<<8) + msg.buf[3];//current reference low<<current reference high
+        CFF  = CF /10;//*10, ex: 1000 = 100A
+        uint16_t EF = (msg.buf[0]<<4) + msg.buf[5];//Enable command 
           switch (EF) {
         case 0:
-                charging_State() = Charging_State::Stop_Charging;   
+                charging_State() = Charging_State::Stop_Charging;//0: stop Charging   
         break;
         case 1:
-                charging_State() = Charging_State::Start_Charging;  
+                charging_State() = Charging_State::Start_Charging;//1: start Charging
         break;
         default:
 
@@ -79,7 +82,7 @@ void canSniff20(const CAN_message_t &msg) { // global callback
 void sendframe()
 {
   CAN_message_t msg;
-  msg.id = 0x0A;
+  msg.id = 0x181;
   msg.len = 8;
   msg.flags.extended = 0;
   msg.flags.remote   = 0;
@@ -89,18 +92,7 @@ void sendframe()
     msg.buf[i] = buff_D[i];
   }
   
-  if (rover_Mode() == Rover_Mode::Active || ros_State()== Ros_State::Ros_Connected){
-    // Debugging_Serial_Print
-    // for ( uint8_t i = 0; i < msg.len; i++ ) {
-    //   Serial.print(msg.buf[i], HEX); Serial.print(" ");
-    // } 
-    // Serial.println();
-    // hex_values = "";
-
-    // for ( uint8_t i = 0; i < msg.len; i=i+2 ) {
-    //   String combine = String(msg.buf[i], HEX) + String(msg.buf[i+1], HEX);
-    //   hex_values += String(convert.hexaToDecimal(combine), DEC) + " ";
-    // } 
+  if (charging_State() == Charging_State::Start_Charging){ 
     can1.write(msg);       // write to can1
   }
 }
@@ -125,6 +117,98 @@ void CanBus::CanB_Event(){
   heartbeat_message._charging_reference = EF;
 
 }
+byte nibble(char c){
+  if (c >= '0' && c <= '9')
+    return c - '0';
 
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+
+  return 0;  // Not a valid hexadecimal character
+}
+void hexCharacterStringToBytes(byte *byteArray, const char *hexString){
+  bool oddLength = strlen(hexString) & 1;
+  byte currentByte = 0;
+  byte byteIndex = 0;
+
+  for (byte charIndex = 0; charIndex < strlen(hexString); charIndex++)
+  {
+    bool oddCharIndex = charIndex & 1;
+
+    if (oddLength){
+      if (oddCharIndex){ // If the length is odd
+        currentByte = nibble(hexString[charIndex]) << 4; // odd characters go in high nibble
+      }
+      else{
+        currentByte |= nibble(hexString[charIndex]);// Even characters go into low nibble
+        byteArray[byteIndex++] = currentByte;
+        currentByte = 0;
+      }
+    }
+    else{
+      if (!oddCharIndex){ // If the length is even
+        currentByte = nibble(hexString[charIndex]) << 4; // Odd characters go into the high nibble
+      }
+      else{
+        currentByte |= nibble(hexString[charIndex]); // Odd characters go into low nibble
+        byteArray[byteIndex++] = currentByte;
+        currentByte = 0;
+      }
+    }
+  }
+}
+
+void Upper_ByteState(){
+    buff_D[2] = 0x00;
+    buff_D[3] = 0x00;
+}
+void Lower_ByteState(){
+    buff_D[0] = 0x00;
+    buff_D[1] = 0x00;
+}
+
+void dumpByteArray_Voltage(const byte * byteArray_Voltage, const byte arraySize){
+      buff_D[0] = byteArray_Voltage[0];
+      buff_D[1] = byteArray_Voltage[1];
+}
+void dumpByteArray_Current(const byte * byteArray_Current, const byte arraySize){
+      buff_D[2] = byteArray_Current[0];
+      buff_D[3] = byteArray_Current[1];
+}
+void dumpByteArray_CS(const byte * byteArray_CS, const byte arraySize){
+      buff_D[4] = byteArray_CS[0];
+      buff_D[5] = byteArray_CS[1];
+}
+String CanBus:: Conversion(uint16_t V){
+    String SFD="";
+    if(V<=255){
+        String Tem = "00" + convert.decimalToHexa(V);
+        SFD = Tem;
+    }
+    else{
+        SFD = convert.decimalToHexa(V);
+    }
+   return SFD;
+}
+void CanBus::Send_EventRaw(uint16_t V,uint16_t C,uint16_t CS, boolean K){
+
+  if(K == true){
+    
+    byte byteArray_V[MaxByteArraySize] = {0};
+    hexCharacterStringToBytes(byteArray_V, CanBus::Conversion(V).c_str());
+    dumpByteArray_Voltage(byteArray_V, MaxByteArraySize);
+
+    byte byteArray_C[MaxByteArraySize] = {0};
+    hexCharacterStringToBytes(byteArray_C, CanBus::Conversion(C).c_str());
+    dumpByteArray_Voltage(byteArray_C, MaxByteArraySize);
+    
+    byte byteArray_CS[MaxByteArraySize] = {0};
+    hexCharacterStringToBytes(byteArray_CS, CanBus::Conversion(CS).c_str());
+    dumpByteArray_Voltage(byteArray_CS, MaxByteArraySize);
+  }
+}
 
 

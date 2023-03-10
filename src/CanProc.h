@@ -80,7 +80,8 @@ class CanBus {
   */
   /**************************************************************************/
     void CanB_Event(); //Void Function Parameter IncomingNewMessage declaration
-    void Send_Event(); //Void Function Parameter IncomingNewMessage declaration
+    void Send_EventRaw(uint16_t V,uint16_t C,uint16_t CS, boolean K ); //Void Function Parameter IncomingNewMessage declaration
+    String Conversion(uint16_t VR);
   struct Charging_message
   {
     uint16_t _voltage_reference; //Limit switch status

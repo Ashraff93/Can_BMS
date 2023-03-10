@@ -47,54 +47,6 @@ inline Switch_Button_Servo& switch_Button_Servo() {
   static Switch_Button_Servo currentswitch_Button_Servo;
   return currentswitch_Button_Servo;
 }
-enum Rover_Mode {
-  Inactive, // When both AB and Auto inactive
-  Active, // When Auto in active
-};
-//  extern enum Obs_State obsState;
-inline Rover_Mode& rover_Mode() {
-  static Rover_Mode currentRover_Mode;
-  return currentRover_Mode;
-}
-enum Rover_State {
-  Diconnected, // When OBS Outside Parameter
-  Connected, // When Auto in active
-
-};
-//  extern enum Obs_State obsState;
-inline Rover_State& rover_State() {
-  static Rover_State currentRover_State;
-  return currentRover_State;
-}
-enum Ros_State {
-  Ros_Diconnected, // When OBS Outside Parameter
-  Ros_Connected, // When Auto in active
-  
-};
-//  extern enum Obs_State obsState;
-inline Ros_State& ros_State() {
-  static Ros_State currentRos_State;
-  return currentRos_State;
-}
-//&& rover_State() == Rover_State::Connected)
-inline bool Comm_Establish_Button() {
-  if ((rover_Mode() == Rover_Mode::Active && rover_State() == Rover_State::Connected )) {
-    return true;
-  }
-  return false;
-}
-inline bool Comm_Establish() {
-  if ((ros_State() == Ros_State::Ros_Connected && rover_State() == Rover_State::Connected)) {
-    return true;
-  }
-  return false;
-}
-inline bool Comm_Debug_Establish() {
-  if (debug_Mode() == Debug_Mode::On_Running) {
-    return true;
-  }
-  return false;
-}
 
 enum Heartbeat {
   Initialization, // When OBS Outside Parameter
@@ -106,6 +58,16 @@ enum Heartbeat {
 inline Heartbeat& heartbeat() {
   static Heartbeat currentHeartbeat;
   return currentHeartbeat;
+}
+enum BMS_State {
+  Request_Charging, // When OBS Outside Parameter
+  Not_Charging
+  
+};
+//  extern enum Obs_State obsState;
+inline BMS_State& bMS_State() {
+  static BMS_State currentbMS_State;
+  return currentbMS_State;
 }
 enum Charging_State {
   Stop_Charging, // When OBS Outside Parameter
@@ -126,5 +88,11 @@ enum Heartbeat_State {
 inline Heartbeat_State& heartbeat_State() {
   static Heartbeat_State currentheartbeat_State;
   return currentheartbeat_State;
+}
+inline bool BMS_Establish() {
+  if ((bMS_State() == BMS_State::Request_Charging && heartbeat() == Heartbeat::Pre_operational )) {
+    return true;
+  }
+  return false;
 }
 #endif
