@@ -4,12 +4,9 @@ using namespace std;
 #include <string> //# Contains macro definitions, constants and declarations of functions and types used not only for string handling
 #include <cstring> //#This header file defines several functions to manipulate C strings and arrays
 #include <Wire.h> //#include "Wire.h" For TWI/I2C Hardware Configuration
-#include <MsTimer2.h> //#include "MsTimer2.h" For Timers AVR architecture
-#include "EnumBoolen.h" //#include "Mm.h" For Enum Logic
+#include "EnumBoolen.h" //#include "EnumBoolen.h" For Enum Logic
 #include "CanProc.h" //#include "CanProc.h" For CANBUS Communication
 #include "Debug.h" //#include "Mm.h" For Enum Logic
-#include <Encoder.h> //#include "Encoder.h" For GPS Communication
-
   /*!
     LED_Declaration
   */
@@ -35,8 +32,16 @@ void loop() {
   LedBD.Update();
   CanB1.CanB_Event(); //Call Canbus Communication
 
-  if(heartbeat() = Heartbeat::Pre_operational){
-    CanB1.Send_Event();
-  }
+  if(BMS_Establish()== true){
+    Serial.println(CanB1.charging_message._voltage_reference);
+    Serial.println(CanB1.charging_message._current_reference);
+    Serial.println(CanB1.charging_message._charging_reference);
+    if(charging_State() == Charging_State::Start_Charging){
+      CanB1.Send_EventRaw(32.1,100,1, true);
+    }
+    else{
+
+    }
+  } 
  
 }
